@@ -30,6 +30,9 @@ public final class BetterHeaders {
   public static final String NOT_SERVER_SIDE_ENCRYPTION = NOT + SERVER_SIDE_ENCRYPTION;
 
   public static final String RANGE = "Range";
+  public static final String IFMATCH = "if-match";
+  public static final String IFNONEMATCH = "if-none-match";
+
 
   public static final String COPY_SOURCE = "x-amz-copy-source";
   public static final String NOT_COPY_SOURCE = NOT + COPY_SOURCE;
