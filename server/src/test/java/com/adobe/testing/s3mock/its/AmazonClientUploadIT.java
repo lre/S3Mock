@@ -707,4 +707,55 @@ public class AmazonClientUploadIT extends S3TestBase {
     assertThat("The vaule of the tag placed did not match",
         getObjectTaggingResult.getTagSet().get(0).getValue(), is("bar"));
   }
+
+  /**
+   * Creates a bucket, stores a file, get files with eTag requrements.
+   */
+  @Test
+  public void shouldCreateAndRespectEtag() throws Exception {
+    final File uploadFile = new File(UPLOAD_FILE_NAME);
+
+    s3Client.createBucket(BUCKET_NAME);
+    PutObjectResult returnObj = s3Client.putObject(new PutObjectRequest(BUCKET_NAME, uploadFile.getName(), uploadFile));
+
+    // wit eTag
+    GetObjectRequest requestWithEtag = new GetObjectRequest(BUCKET_NAME, uploadFile.getName());
+    requestWithEtag.setMatchingETagConstraints(new ArrayList<String>() {{
+        add(returnObj.getETag());
+    }});
+
+    GetObjectRequest requestWithHoutEtag = new GetObjectRequest(BUCKET_NAME, uploadFile.getName());
+    Integer notEtag = returnObj.getETag().hashCode();
+    requestWithHoutEtag.setNonmatchingETagConstraints(new ArrayList<String>() {{
+        add(notEtag.toString());
+    }});
+
+    final S3Object s3ObjectWithEtag = s3Client.getObject(requestWithEtag);
+    final S3Object s3ObjectWithHoutEtag = s3Client.getObject(requestWithHoutEtag);
+    final String s3ObjectWithEtagDownloadedHash = HashUtil.getDigest(s3ObjectWithEtag.getObjectContent());
+    final String s3ObjectWithHoutEtagDownloadedHash = HashUtil.getDigest(s3ObjectWithHoutEtag.getObjectContent());
+    final InputStream uploadFileIs = new FileInputStream(uploadFile);
+    final String uploadHash = HashUtil.getDigest(uploadFileIs);
+
+    assertThat("", uploadHash, is(equalTo(s3ObjectWithEtagDownloadedHash)));
+    assertThat("", uploadHash, is(equalTo(s3ObjectWithHoutEtagDownloadedHash)));
+
+      // wit eTag
+      requestWithEtag = new GetObjectRequest(BUCKET_NAME, uploadFile.getName());
+      requestWithEtag.setMatchingETagConstraints(new ArrayList<String>() {{
+          add(notEtag.toString());
+      }});
+
+      requestWithHoutEtag = new GetObjectRequest(BUCKET_NAME, uploadFile.getName());
+      requestWithHoutEtag.setNonmatchingETagConstraints(new ArrayList<String>() {{
+          add(returnObj.getETag());
+      }});
+
+      final S3Object s3ObjectWithEtagNull = s3Client.getObject(requestWithEtag);
+      final S3Object s3ObjectWithHoutEtagNull = s3Client.getObject(requestWithHoutEtag);
+
+      assertThat("", s3ObjectWithEtagNull, is(equalTo(null)));
+      assertThat("", s3ObjectWithHoutEtagNull, is(equalTo(null)));
+  }
+
 }
